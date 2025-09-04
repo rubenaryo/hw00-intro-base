@@ -24,6 +24,12 @@ let square: Square;
 let cube: Cube;
 let prevTesselations: number = 5;
 
+const startTime: number = Date.now() / 1000.0;
+
+const getElapsedTime = (): number => {
+  return (Date.now()/1000.0) - startTime;
+}
+
 function loadScene() {
   icosphere = new Icosphere(vec3.fromValues(0, 0, 0), 1, controls.tesselations);
   icosphere.create();
@@ -70,7 +76,7 @@ function main() {
   gl.enable(gl.DEPTH_TEST);
 
   const lambert = new ShaderProgram([
-    new Shader(gl.VERTEX_SHADER, require('./shaders/lambert-vert.glsl')),
+    new Shader(gl.VERTEX_SHADER, require('./shaders/trig-vert.glsl')),
     new Shader(gl.FRAGMENT_SHADER, require('./shaders/worley-frag.glsl')),
   ]);
 
@@ -87,6 +93,8 @@ function main() {
        icosphere.create();
     }
 
+    lambert.setTime(getElapsedTime());
+
     renderer.render(camera, lambert, [
       // icosphere,
       // square,
@@ -96,6 +104,8 @@ function main() {
 
     // Tell the browser to call `tick` again whenever it renders a new frame
     requestAnimationFrame(tick);
+
+    //globalTime += (Date.now() - )
   }
 
   window.addEventListener('resize', function() {
