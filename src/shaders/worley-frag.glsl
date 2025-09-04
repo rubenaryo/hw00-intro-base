@@ -30,51 +30,32 @@ float rand(vec3 pos)
     return fract(sin(dot(pos, vec3(64.25375463, 23.27536534, 86.29678483))) * 59482.7542);
 }
 
-vec3 get_worley_point(ivec3 cellCoord)
-{
-    vec3 cell = vec3(cellCoord / NUM_CELLS);
-    float noiseX = rand(vec3(cell));
-    float noiseY = rand(vec3(cell.yxz));
-    float noiseZ = rand(vec3(cell.zyx));
-    return cell + (0.5 + 1.5*vec3(noiseX, noiseY, noiseZ)) / float(NUM_CELLS);
+// Extension to 3D from 560 implementation
+vec3 random3(vec3 p) {
+    return fract(sin(vec3(
+        dot(p, vec3(127.1, 311.7, 74.7)),
+        dot(p, vec3(269.5, 183.3, 246.1)),
+        dot(p, vec3(113.5, 271.9, 124.6))
+    )) * 43758.5453123);
 }
 
-float worley(vec3 coord)
-{
-    ivec3 cell = ivec3(coord * float(NUM_CELLS));
-    float dist = 1.0;
-
-    for (int x = -2; x < 3; ++x)
-    {
-        for (int y = -2; y < 3; ++y)
-        {
-            for (int z = -2; z < 3; ++z)
-            {
-                vec3 neighbor_cell = get_worley_point(cell + ivec3(x, y, z));
-                dist = min(dist, distance(neighbor_cell, coord));
+float WorleyNoise3D(vec3 pos) {
+    pos *= 10.0;
+    vec3 posInt = floor(pos);
+    vec3 posFract = fract(pos);
+    float minDist = 1.0;
+    for (int z = -1; z <= 1; ++z) {
+        for(int y = -1; y <= 1; ++y) {
+            for(int x = -1; x <= 1; ++x) {
+                vec3 neighbor = vec3(float(x), float(y), float(z));
+                vec3 point = random3(posInt + neighbor);
+                vec3 diff = neighbor + point - posFract; 
+                float dist = length(diff);
+                minDist = min(minDist, dist);
             }
         }
     }
-
-    dist /= length(vec3(1.0 / float(NUM_CELLS)));
-    dist = 1.0 - dist;
-    return dist;
-}
-
-float perlin3d(vec3 pos)
-{
-    float total = 0.0;
-    float persistence = 1.0 / 2.0;
-
-    for (int i = 0; i < 8; i++)
-    {
-        float freq = pow(2.0, float(i));
-        float amp = pow(persistence, float(i));
-
-        total += rand(pos.xyz);
-    }
-    
-    return total;
+    return minDist;
 }
 
 void main()
@@ -87,15 +68,15 @@ void main()
     // Avoid negative lighting values
     // diffuseTerm = clamp(diffuseTerm, 0, 1);
 
-    float ambientTerm = 0.2;
+    float ambientTerm = 0.5;
 
     float lightIntensity = diffuseTerm + ambientTerm;   //Add a small float value to the color multiplier
                                                             //to simulate ambient lighting. This ensures that faces that are not
                                                             //lit by our point light are not completely black.
 
-    // Compute final shaded color
-    out_Col = vec4(diffuseColor.rgb * lightIntensity, diffuseColor.a);
+    lightIntensity = min(lightIntensity, 1.0);
 
-    float worley = worley(fs_Pos.zyz);
-    out_Col = vec4(worley, worley, worley, 1);
+    // Compute final shaded color
+    float worley = WorleyNoise3D(fs_Pos.xyz);
+    out_Col = vec4(lightIntensity * worley * diffuseColor.rgb, diffuseColor.a);
 }
