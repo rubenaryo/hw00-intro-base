@@ -5,7 +5,7 @@
 </p>
 <p align="center">(source: Ken Perlin)</p>
 
-[](cube.png)
+![](cube.png)
 
 ## Project description
 Typescript/OpenGL demo showcasing a morphing cube skinned with Worley Noise.
